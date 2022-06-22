@@ -33,14 +33,33 @@ big_field = []
 
 
 class Player:
-    def __init__(self, x, y, angle):
+
+    def __init__(self, x=180, y=200, angle=250):
         self.x = x
         self.y = y
         self.angle = angle
-        self.direction = 0
+        self.rotation_direction = 0
+        self.moving_forward = False
+        self.moving_backwards = False
 
     def update(self):
-        self.angle += self.direction
+        dx = math.cos(self.angle * math.pi / 180)
+        dy = math.sin(self.angle * math.pi / 180)
+        if self.moving_forward:
+            self.x += dx
+            self.y += dy
+            if big_field[int(self.y)][int(self.x)]:
+                self.x -= dx
+                self.y -= dy
+
+        elif self.moving_backwards:
+            self.x -= dx
+            self.y -= dy
+            if big_field[int(self.y)][int(self.x)]:
+                self.x += dx
+                self.y += dy
+
+        self.angle += self.rotation_direction
         if self.angle == 360:
             self.angle -= 360
         elif self.angle == -1:
@@ -73,7 +92,7 @@ def ray_casting(screen, player):
         while True:
             x += dx
             y += dy
-            if x < 0 or x > 799 or y < 0 or y > 799 or big_field[int(y)][int(x)]:
+            if x < 0 or x > SIZE_SCREEN.WIDTH - 1 or y < 0 or y > SIZE_SCREEN.HEIGHT - 1 or big_field[int(y)][int(x)]:
                 x -= dx
                 y -= dy
                 break
@@ -86,25 +105,29 @@ def main():
     is_running = True
     create_big_field()
 
-    player = Player(180, 200, 250)
+    player = Player()
     while is_running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 is_running = False
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_UP:
-                    player.x += math.cos(player.angle * math.pi / 180)
-                    player.y += math.sin(player.angle * math.pi / 180)
-                if event.key == pg.K_DOWN:
-                    player.x -= math.cos(player.angle * math.pi / 180)
-                    player.y -= math.sin(player.angle * math.pi / 180)
+                    player.moving_forward = True
+                    player.moving_backwards = False
+                elif event.key == pg.K_DOWN:
+                    player.moving_forward = False
+                    player.moving_backwards = True
                 if event.key == pg.K_LEFT:
-                    player.direction = -1
-                if event.key == pg.K_RIGHT:
-                    player.direction = 1
+                    player.rotation_direction = -1
+                elif event.key == pg.K_RIGHT:
+                    player.rotation_direction = 1
             if event.type == pg.KEYUP:
                 if event.key == pg.K_LEFT or event.key == pg.K_RIGHT:
-                    player.direction = 0
+                    player.rotation_direction = 0
+                if event.key == pg.K_UP:
+                    player.moving_forward = False
+                if event.key == pg.K_DOWN:
+                    player.moving_backwards = False
 
         player.update()
         screen.fill((0, 0, 0))
