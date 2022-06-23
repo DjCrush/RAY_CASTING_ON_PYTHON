@@ -3,7 +3,7 @@ import pygame as pg
 from collections import namedtuple
 
 SIZE = namedtuple('SIZE', ('WIDTH', 'HEIGHT'))
-SIZE_SCREEN = SIZE(800, 800)
+SIZE_SCREEN = SIZE(1800, 800)
 SIZE_FIELD = SIZE(20, 20)
 
 field = [
@@ -43,19 +43,19 @@ class Player:
         self.moving_backwards = False
 
     def update(self):
-        dx = math.cos(self.angle * math.pi / 180)
-        dy = math.sin(self.angle * math.pi / 180)
+        dx = math.cos(math.radians(self.angle))
+        dy = math.sin(math.radians(self.angle))
         if self.moving_forward:
             self.x += dx
             self.y += dy
-            if big_field[int(self.y)][int(self.x)]:
+            if big_field[int(self.y)][int(self.x)] or self.x < 0 or self.x > 799:
                 self.x -= dx
                 self.y -= dy
 
         elif self.moving_backwards:
             self.x -= dx
             self.y -= dy
-            if big_field[int(self.y)][int(self.x)]:
+            if big_field[int(self.y)][int(self.x)] or self.y < 0 or self.y > 799:
                 self.x += dx
                 self.y += dy
 
@@ -84,19 +84,39 @@ def draw_field(screen):
 
 
 def ray_casting(screen, player):
-    for alpha in range(player.angle - 45, player.angle + 45):
-        dx = math.cos(alpha * math.pi / 180)
-        dy = math.sin(alpha * math.pi / 180)
+    x1 = 0
+    for alpha in range(0, 91):
+        alpha = player.angle - 45 + alpha
+        dx = math.cos(math.radians(alpha)) * 2
+        dy = math.sin(math.radians(alpha)) * 2
         x = player.x
         y = player.y
+        is_wall = False
         while True:
             x += dx
             y += dy
-            if x < 0 or x > SIZE_SCREEN.WIDTH - 1 or y < 0 or y > SIZE_SCREEN.HEIGHT - 1 or big_field[int(y)][int(x)]:
+            if x < 0 or x > 799 or y < 0 or y > 799:
                 x -= dx
                 y -= dy
                 break
+            if big_field[int(y)][int(x)]:
+                x -= dx
+                y -= dy
+                is_wall = True
+                break
         pg.draw.line(screen, (0, 0, 255), (int(player.x), int(player.y)), (int(x), int(y)))
+        if is_wall:
+            distance = math.dist((player.x, player.y), (x, y))
+            distance *= math.cos(math.radians(alpha - player.angle))  # remove the fisheye effect
+            try:
+                if distance > 0:
+                    half_height_wall = int(16 * SIZE_SCREEN.HEIGHT / distance)
+                    pg.draw.line(screen, (0, 255, 255), (int(x1) + 800, 400 - half_height_wall),
+                                 (int(x1) + 800, 400 + half_height_wall))
+            except TypeError:
+                print(x1, distance)
+
+        x1 += (SIZE_SCREEN.WIDTH - 800) / 90
 
 
 def main():
